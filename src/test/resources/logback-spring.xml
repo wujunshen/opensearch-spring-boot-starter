@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration scan="true">
+  <appender class="ch.qos.logback.core.rolling.RollingFileAppender"
+    name="FILE">
+    <append>true</append>
+    <encoder>
+      <pattern>
+        %d{yyyy-MM-dd HH:mm:ss.SSS} [%level:%thread] [%logger:%line] - %msg%n
+      </pattern>
+    </encoder>
+    <file>/${LOG_HOME}/${LOG_NAME}.log</file>
+    <filter class="ch.qos.logback.classic.filter.LevelFilter">
+      <level>DEBUG</level>
+      <level>WARN</level>
+      <level>INFO</level>
+      <level>ERROR</level>
+    </filter>
+    <rollingPolicy
+      class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+      <fileNamePattern>
+        /${LOG_HOME}/${LOG_NAME}-%d{yyyy-MM-dd}.%i.log.zip
+      </fileNamePattern>
+      <maxFileSize>100MB</maxFileSize>
+      <maxHistory>7</maxHistory>
+      <totalSizeCap>3GB</totalSizeCap>
+    </rollingPolicy>
+  </appender>
+  <appender class="ch.qos.logback.core.ConsoleAppender" name="STDOUT">
+    <encoder>
+      <charset>UTF-8</charset>
+      <pattern>
+        %d{yyyy-MM-dd HH:mm:ss.SSS} [%level:%thread] [%logger:%line] - %msg%n
+      </pattern>
+    </encoder>
+    <filter class="ch.qos.logback.classic.filter.LevelFilter">
+      <level>DEBUG</level>
+      <level>WARN</level>
+      <level>INFO</level>
+      <level>ERROR</level>
+    </filter>
+  </appender>
+  <appender class="ch.qos.logback.classic.AsyncAppender" name="ASYNC-STDOUT">
+    <!-- 不丢失日志.默认的,如果队列的80%已满,则会丢弃TRACT、DEBUG、INFO级别的日志 -->
+    <appender-ref ref="STDOUT"/>
+    <!-- 更改默认的队列的深度,该值会影响性能.默认值为256 -->
+    <discardingThreshold>0</discardingThreshold>
+    <!-- 新增这行为了打印栈堆信息 -->
+    <includeCallerData>true</includeCallerData>
+    <!-- 添加附加的appender,最多只能添加一个 -->
+    <queueSize>512</queueSize>
+  </appender>
+  <!-- Console output -->
+  <appender class="ch.qos.logback.classic.AsyncAppender" name="ASYNC-FILE">
+    <!-- 不丢失日志.默认的,如果队列的80%已满,则会丢弃TRACT、DEBUG、INFO级别的日志 -->
+    <appender-ref ref="FILE"/>
+    <!-- 更改默认的队列的深度,该值会影响性能.默认值为256 -->
+    <discardingThreshold>0</discardingThreshold>
+    <!-- 新增这行为了打印栈堆信息 -->
+    <includeCallerData>true</includeCallerData>
+    <!-- 添加附加的appender,最多只能添加一个 -->
+    <queueSize>512</queueSize>
+  </appender>
+  <!-- 异步输出 -->
+  <logger level="TRACE" name="org.apache.ibatis"/>
+
+  <logger level="DEBUG" name="java.sql.Connection"/>
+
+  <logger level="DEBUG" name="java.sql.Statement"/>
+
+  <logger level="DEBUG" name="java.sql.PreparedStatement"/>
+
+  <logger level="INFO" name="org.springframework"/>
+
+  <logger level="TRACE"
+    name="org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping"/>
+
+  <logger level="WARN" name="com.netflix"/>
+  <logger level="INFO" name="org"/>
+  <root level="INFO">
+    <appender-ref ref="ASYNC-FILE"/>
+    <appender-ref ref="ASYNC-STDOUT"/>
+  </root>
+  <springProfile name="PROD">
+    <root level="INFO">
+      <appender-ref ref="ASYNC-FILE"/>
+    </root>
+  </springProfile>
+  <springProfile name="DEV">
+    <root level="INFO">
+      <appender-ref ref="ASYNC-STDOUT"/>
+    </root>
+  </springProfile>
+  <!--启动日志中打印请求路径列表-->
+  <springProfile name="TEST">
+    <root level="INFO">
+      <appender-ref ref="ASYNC-STDOUT"/>
+    </root>
+  </springProfile>
+  <springProperty defaultValue="${user.dir}/logs" name="LOG_HOME"
+    scope="context"
+    source="logging.path"/>
+  <springProperty defaultValue="localhost" name="LOG_NAME" scope="context"
+    source="spring.application.name"/>
+</configuration>
