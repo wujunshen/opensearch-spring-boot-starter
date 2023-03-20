@@ -75,7 +75,7 @@ Set the truststore properties in the Java application code to point to the custo
 ```
 mv wjunshenStore /home/ec2-user/
 
-scp -i "wjunshen.pem" ec2-user@ec2-35-72-115-65.ap-northeast-1.compute.amazonaws.com:/home/ec2-user/wjunshenStore ~/Downloads/keystore //复制目录
+scp -i "wjunshen.pem" ec2-user@ec2-35-72-115-65.ap-northeast-1.compute.amazonaws.com:/home/ec2-user/wjunshenStore ~/Downloads/keystore //Copy Directory
 ``` 
 Then change the code in `OpenSearchAutoConfiguration.java`
 
