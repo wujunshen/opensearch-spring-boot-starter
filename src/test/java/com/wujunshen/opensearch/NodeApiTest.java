@@ -26,8 +26,8 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 
 /**
- * @author frank woo(吴峻申) <br> email:<a
- * href="mailto:frank_wjs@hotmail.com">frank_wjs@hotmail.com</a> <br>
+ * @author frank woo(吴峻申) <br>
+ * @email <a href="mailto:frank_wjs@hotmail.com">frank_wjs@hotmail.com</a> <br>
  * @date 2022/8/28 20:29<br>
  */
 @Slf4j
@@ -36,33 +36,28 @@ import org.springframework.test.context.ActiveProfiles;
 @Order(0)
 @ActiveProfiles(value = "local")
 @TestInstance(Lifecycle.PER_CLASS)
-@SpringBootTest(classes = {ApplicationTests.class})//这里加启动类
+@SpringBootTest(classes = {ApplicationTests.class}) // add startup class here
 class NodeApiTest {
 
-	@Autowired
-	private NodeApi nodeApi;
+  @Autowired private NodeApi nodeApi;
 
-	@BeforeAll
-	void setUp() {
-	}
+  @BeforeAll
+  void setUp() {}
 
-	@AfterAll
-	void tearDown() {
-	}
+  @AfterAll
+  void tearDown() {}
 
-	/**
-	 * 获取所有节点信息
-	 */
-	@Order(0)
-	@Test
-	void getAllNodes() throws IOException {
-		List<NodesRecord> nodesRecords = nodeApi.getAllNodes();
+  /** get all nodes information */
+  @Order(0)
+  @Test
+  void getAllNodes() throws IOException {
+    List<NodesRecord> nodesRecords = nodeApi.getAllNodes();
 
-		for (NodesRecord nodesRecord : nodesRecords) {
-			log.info("\nnodeName:{}\nip:{}", nodesRecord.name(), nodesRecord.ip());
-		}
+    for (NodesRecord nodesRecord : nodesRecords) {
+      log.info("\nnodeName:{}\nip:{}", nodesRecord.name(), nodesRecord.ip());
+    }
 
-		assertThat(nodesRecords, notNullValue());
-		assertThat(nodesRecords, hasSize(equalTo(4)));
-	}
+    assertThat(nodesRecords, notNullValue());
+    assertThat(nodesRecords, hasSize(equalTo(3)));
+  }
 }

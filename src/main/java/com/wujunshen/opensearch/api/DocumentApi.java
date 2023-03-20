@@ -19,8 +19,8 @@ import org.springframework.stereotype.Component;
 import org.springframework.util.CollectionUtils;
 
 /**
- * @author frank woo(吴峻申) <br> email:<a
- * href="mailto:frank_wjs@hotmail.com">frank_wjs@hotmail.com</a> <br>
+ * @author frank woo(吴峻申) <br>
+ * @email <a href="mailto:frank_wjs@hotmail.com">frank_wjs@hotmail.com</a> <br>
  * @date 2022/8/18 12:46<br>
  */
 @Slf4j
@@ -28,230 +28,231 @@ import org.springframework.util.CollectionUtils;
 @RequiredArgsConstructor
 public class DocumentApi {
 
-	private final OpenSearchClient openSearchClient;
+  private final OpenSearchClient openSearchClient;
 
-	/**
-	 * 单个文档写入
-	 *
-	 * @param indexName 索引名
-	 * @param o         文档对象
-	 * @param <T>       文档对象泛型
-	 * @return IndexResponse对象
-	 * @throws IOException 异常信息
-	 */
-	public <T> IndexResponse addDocument(String indexName, T o) throws IOException {
-		IndexResponse indexResponse = openSearchClient.index(
-				indexRequest -> indexRequest.index(indexName).document(o));
+  /**
+   * write the single document
+   *
+   * @param indexName index name
+   * @param o document object
+   * @param <T> the generics of the document object
+   * @return IndexResponse object
+   * @throws IOException exception info
+   */
+  public <T> IndexResponse addDocument(String indexName, T o) throws IOException {
+    IndexResponse indexResponse =
+        openSearchClient.index(indexRequest -> indexRequest.index(indexName).document(o));
 
-		log.info("response: {}", indexResponse);
+    log.info("response: {}", indexResponse);
 
-		return indexResponse;
-	}
+    return indexResponse;
+  }
 
-	/**
-	 * 单个文档写入
-	 *
-	 * @param indexName 索引名
-	 * @param id        文档id
-	 * @param o         文档对象
-	 * @param <T>       文档对象泛型
-	 * @return IndexResponse对象
-	 * @throws IOException 异常信息
-	 */
-	public <T> IndexResponse addDocument(String indexName, String id, T o) throws IOException {
-		IndexResponse indexResponse = openSearchClient.index(
-				indexRequest -> indexRequest.index(indexName).id(id).document(o));
+  /**
+   * write the single document
+   *
+   * @param indexName index name
+   * @param id document id
+   * @param o document object
+   * @param <T> the generics of the document object
+   * @return IndexResponse object
+   * @throws IOException exception info
+   */
+  public <T> IndexResponse addDocument(String indexName, String id, T o) throws IOException {
+    IndexResponse indexResponse =
+        openSearchClient.index(indexRequest -> indexRequest.index(indexName).id(id).document(o));
 
-		log.info("response: {}", indexResponse);
+    log.info("response: {}", indexResponse);
 
-		return indexResponse;
-	}
+    return indexResponse;
+  }
 
-	/**
-	 * 更新文档信息
-	 *
-	 * @param indexName 索引名
-	 * @param o         文档对象
-	 * @param id        要更新的文档对象id
-	 * @param clazz     要更新的文档对象class
-	 * @param <T>       文档对象泛型
-	 * @return UpdateResponse对象
-	 * @throws IOException 异常信息
-	 */
-	public <T> UpdateResponse<T> updateDocument(String indexName, T o, String id, Class<T> clazz)
-			throws IOException {
-		UpdateResponse<T> updateResponse = openSearchClient.update(
-				updateRequest -> updateRequest.index(indexName).id(id).doc(o), clazz);
+  /**
+   * update document information
+   *
+   * @param indexName index name
+   * @param o document object
+   * @param id the document object id to be updated
+   * @param clazz the document object class to update
+   * @param <T> the generics of the document object
+   * @return UpdateResponse object
+   * @throws IOException exception info
+   */
+  public <T> UpdateResponse<T> updateDocument(String indexName, T o, String id, Class<T> clazz)
+      throws IOException {
+    UpdateResponse<T> updateResponse =
+        openSearchClient.update(
+            updateRequest -> updateRequest.index(indexName).id(id).doc(o), clazz);
 
-		log.info("response: {}", updateResponse);
+    log.info("response: {}", updateResponse);
 
-		return updateResponse;
-	}
+    return updateResponse;
+  }
 
-	/**
-	 * 查询文档信息
-	 *
-	 * @param indexName 索引名
-	 * @param id        要查询的文档对象id
-	 * @param clazz     要查询的文档对象class
-	 * @param <T>       文档对象泛型
-	 * @return GetResponse对象
-	 * @throws IOException 异常信息
-	 */
-	public <T> GetResponse<T> getDocument(String indexName, String id, Class<T> clazz)
-			throws IOException {
-		GetResponse<T> getResponse = openSearchClient.get(
-				getRequest -> getRequest.index(indexName).id(id), clazz);
+  /**
+   * query document information
+   *
+   * @param indexName index name
+   * @param id the document object id to be queried
+   * @param clazz the document object class to be queried
+   * @param <T> the generics of the document object
+   * @return GetResponse object
+   * @throws IOException exception info
+   */
+  public <T> GetResponse<T> getDocument(String indexName, String id, Class<T> clazz)
+      throws IOException {
+    GetResponse<T> getResponse =
+        openSearchClient.get(getRequest -> getRequest.index(indexName).id(id), clazz);
 
-		log.info("document source: {}, response: {}", getResponse.source(), getResponse);
+    log.info("document source: {}, response: {}", getResponse.source(), getResponse);
 
-		return getResponse;
-	}
+    return getResponse;
+  }
 
-	/**
-	 * 获取索引下所有文档信息
-	 *
-	 * @param indexName 索引名
-	 * @param clazz     要查询的文档对象class
-	 * @param <T>       文档对象泛型
-	 * @return 文档对象泛型列表
-	 * @throws IOException 异常信息
-	 */
-	public <T> List<T> getAllDocument(String indexName, Class<T> clazz) throws IOException {
-		SearchResponse<T> searchResponse = openSearchClient.search(a -> a.index(indexName), clazz);
+  /**
+   * get the information about all documents under the index
+   *
+   * @param indexName index name
+   * @param clazz the document object class to be queried
+   * @param <T> the generics of the document object
+   * @return the generics of the document object list
+   * @throws IOException exception info
+   */
+  public <T> List<T> getAllDocument(String indexName, Class<T> clazz) throws IOException {
+    SearchResponse<T> searchResponse = openSearchClient.search(a -> a.index(indexName), clazz);
 
-		List<Hit<T>> hitList = getHitList(searchResponse);
+    List<Hit<T>> hitList = getHitList(searchResponse);
 
-		return hitList.stream().map(Hit::source).toList();
-	}
+    return hitList.stream().map(Hit::source).toList();
+  }
 
-	/**
-	 * 获取索引下所有文档id
-	 *
-	 * @param indexName 索引名
-	 * @param clazz     要查询的文档对象class
-	 * @param <T>       文档对象泛型
-	 * @return 文档对象id列表
-	 * @throws IOException 异常信息
-	 */
-	public <T> List<String> getAllDocumentIds(String indexName, Class<T> clazz) throws IOException {
-		SearchResponse<T> searchResponse = openSearchClient.search(a -> a.index(indexName), clazz);
+  /**
+   * get all document ids under index
+   *
+   * @param indexName index name
+   * @param clazz the document object class to be queried
+   * @param <T> the generics of the document object
+   * @return document object id list
+   * @throws IOException exception info
+   */
+  public <T> List<String> getAllDocumentIds(String indexName, Class<T> clazz) throws IOException {
+    SearchResponse<T> searchResponse = openSearchClient.search(a -> a.index(indexName), clazz);
 
-		List<Hit<T>> hitList = getHitList(searchResponse);
+    List<Hit<T>> hitList = getHitList(searchResponse);
 
-		return hitList.stream().map(Hit::id).toList();
-	}
+    return hitList.stream().map(Hit::id).toList();
+  }
 
-	/**
-	 * 删除文档信息
-	 *
-	 * @param indexName 索引名
-	 * @param id        要删除的文档对象id
-	 * @return DeleteResponse对象
-	 * @throws IOException 异常信息
-	 */
-	public DeleteResponse deleteDocument(String indexName, String id) throws IOException {
-		DeleteResponse deleteResponse = openSearchClient.delete(
-				deleteRequest -> deleteRequest.index(indexName).id(id));
+  /**
+   * delete document information
+   *
+   * @param indexName index name
+   * @param id the document object id to be deleted
+   * @return DeleteResponse object
+   * @throws IOException exception info
+   */
+  public DeleteResponse deleteDocument(String indexName, String id) throws IOException {
+    DeleteResponse deleteResponse =
+        openSearchClient.delete(deleteRequest -> deleteRequest.index(indexName).id(id));
 
-		log.info("response: {}, result:{}", deleteResponse, deleteResponse.result());
+    log.info("response: {}, result:{}", deleteResponse, deleteResponse.result());
 
-		return deleteResponse;
-	}
+    return deleteResponse;
+  }
 
-	/**
-	 * 删除所有文档信息
-	 *
-	 * @param indexName 索引名
-	 * @param clazz     文档对象泛型的class
-	 * @param <T>       文档对象泛型
-	 * @return 删除是否成功
-	 * @throws IOException 异常信息
-	 */
-	public <T> boolean deleteAllDocument(String indexName, Class<T> clazz) throws IOException {
-		return batchDeleteDocument(indexName, getAllDocumentIds(indexName, clazz));
-	}
+  /**
+   * delete all document information
+   *
+   * @param indexName index name
+   * @param clazz the generics of the document object class
+   * @param <T> the generics of the document object
+   * @return is the deletion successful?
+   * @throws IOException exception info
+   */
+  public <T> boolean deleteAllDocument(String indexName, Class<T> clazz) throws IOException {
+    return batchDeleteDocument(indexName, getAllDocumentIds(indexName, clazz));
+  }
 
-	/**
-	 * 批量插入文档
-	 *
-	 * @param indexName 索引名
-	 * @param list      批量插入的文档对象list
-	 * @param <T>       文档对象泛型
-	 * @return 批量插入是否成功
-	 * @throws IOException 异常信息
-	 */
-	public <T> boolean batchAddDocument(String indexName, List<T> list) throws IOException {
-		BulkRequest.Builder br = new BulkRequest.Builder();
+  /**
+   * batch document insertion
+   *
+   * @param indexName index name
+   * @param list batch inserted document object list
+   * @param <T> the generics of the document object
+   * @return whether the batch insertion is successful?
+   * @throws IOException exception info
+   */
+  public <T> boolean batchAddDocument(String indexName, List<T> list) throws IOException {
+    BulkRequest.Builder br = new BulkRequest.Builder();
 
-		for (T element : list) {
-			br.operations(op -> op.index(idx -> idx.index(indexName).document(element)));
-		}
+    for (T element : list) {
+      br.operations(op -> op.index(idx -> idx.index(indexName).document(element)));
+    }
 
-		BulkResponse bulkResponse = openSearchClient.bulk(br.build());
+    BulkResponse bulkResponse = openSearchClient.bulk(br.build());
 
-		if (bulkResponse.errors()) {
-			log.error("Bulk had errors");
-			for (BulkResponseItem item : bulkResponse.items()) {
-				if (item.error() != null) {
-					log.error("{}", item.error().reason());
-				}
-			}
-			return false;
-		} else {
-			log.info("Bulk write success!");
-			return true;
-		}
-	}
+    if (bulkResponse.errors()) {
+      log.error("Bulk had errors");
+      for (BulkResponseItem item : bulkResponse.items()) {
+        if (item.error() != null) {
+          log.error("{}", item.error().reason());
+        }
+      }
+      return false;
+    } else {
+      log.info("Bulk write success!");
+      return true;
+    }
+  }
 
-	/**
-	 * 批量删除文档
-	 *
-	 * @param indexName 索引名
-	 * @param ids       批量删除的文档id的列表
-	 * @param <T>       文档对象泛型
-	 * @return 批量删除是否成功
-	 * @throws IOException 异常信息
-	 */
-	public <T> boolean batchDeleteDocument(String indexName, List<String> ids) throws IOException {
-		BulkRequest.Builder br = new BulkRequest.Builder();
+  /**
+   * batch delete documents
+   *
+   * @param indexName index name
+   * @param ids list of document ids for batch deletion
+   * @param <T> the generics of the document object
+   * @return whether the batch deletion is successful?
+   * @throws IOException exception info
+   */
+  public <T> boolean batchDeleteDocument(String indexName, List<String> ids) throws IOException {
+    BulkRequest.Builder br = new BulkRequest.Builder();
 
-		for (String id : ids) {
-			br.operations(op -> op.delete(idx -> idx.index(indexName).id(id)));
-		}
+    for (String id : ids) {
+      br.operations(op -> op.delete(idx -> idx.index(indexName).id(id)));
+    }
 
-		BulkResponse bulkResponse = openSearchClient.bulk(br.build());
+    BulkResponse bulkResponse = openSearchClient.bulk(br.build());
 
-		if (bulkResponse.errors()) {
-			log.error("Bulk had errors");
-			for (BulkResponseItem item : bulkResponse.items()) {
-				if (item.error() != null) {
-					log.error("{}", item.error().reason());
-				}
-			}
-			return false;
-		} else {
-			log.info("Bulk delete success!");
-			return true;
-		}
-	}
+    if (bulkResponse.errors()) {
+      log.error("Bulk had errors");
+      for (BulkResponseItem item : bulkResponse.items()) {
+        if (item.error() != null) {
+          log.error("{}", item.error().reason());
+        }
+      }
+      return false;
+    } else {
+      log.info("Bulk delete success!");
+      return true;
+    }
+  }
 
-	/**
-	 * 获取Hit对象列表
-	 *
-	 * @param response SearchResponse对象
-	 * @param <T>      文档对象泛型
-	 * @return 文档对象Hit泛型列表
-	 */
-	private <T> List<Hit<T>> getHitList(SearchResponse<T> response) {
-		log.info("consume times {} mill second", response.took());
+  /**
+   * get a list of Hit objects
+   *
+   * @param response SearchResponse object
+   * @param <T> the generics of the document object
+   * @return the generics of the document object list
+   */
+  private <T> List<Hit<T>> getHitList(SearchResponse<T> response) {
+    log.info("consume times {} mill second", response.took());
 
-		List<Hit<T>> hitList = response.hits().hits();
+    List<Hit<T>> hitList = response.hits().hits();
 
-		if (CollectionUtils.isEmpty(hitList)) {
-			return new ArrayList<>();
-		}
+    if (CollectionUtils.isEmpty(hitList)) {
+      return new ArrayList<>();
+    }
 
-		return hitList;
-	}
+    return hitList;
+  }
 }

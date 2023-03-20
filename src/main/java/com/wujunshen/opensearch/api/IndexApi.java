@@ -27,247 +27,262 @@ import org.opensearch.client.transport.endpoints.BooleanResponse;
 import org.springframework.stereotype.Component;
 
 /**
- * @author frank woo(吴峻申) <br> email:<a
- * href="mailto:frank_wjs@hotmail.com">frank_wjs@hotmail.com</a> <br> {@code @date} 2022/8/18
- * 12:18<br>
+ * @author frank woo(吴峻申) <br>
+ * @email <a href="mailto:frank_wjs@hotmail.com">frank_wjs@hotmail.com</a> <br>
+ * @date 2022/8/18 12:18<br>
  */
 @Slf4j
 @Component
 @RequiredArgsConstructor
 public class IndexApi {
-	private final OpenSearchClient openSearchClient;
+  private final OpenSearchClient openSearchClient;
 
-	/**
-	 * 执行refresh或flush操作
-	 *
-	 * @param response 相应对象
-	 * @return 操作是否成功，true成功 false失败
-	 */
-	private boolean doOperation(ShardStatistics response) {
-		int failedShards = response.failures().size();
-		if (failedShards == response.total().intValue()) {
-			log.info("ES索引刷新失败 {}", response.failures());
-			return false;
-		} else if (failedShards > 0) {
-			log.info("ES索引刷新部分分片失败 {}", response.failures());
-		}
-		log.info("ES索引刷新成功");
-		return true;
-	}
+  /**
+   * perform a refresh or flush operation
+   *
+   * @param response corresponding objects
+   * @return whether the operation succeeds, true succeeds, false fails
+   */
+  private boolean doOperation(ShardStatistics response) {
+    int failedShards = response.failures().size();
+    if (failedShards == response.total().intValue()) {
+      log.info("OS index refresh failure: {}", response.failures());
+      return false;
+    } else if (failedShards > 0) {
+      log.info("OS index flush partial slice failure: {}", response.failures());
+    }
+    log.info("OS index refreshed successfully");
+    return true;
+  }
 
-	/**
-	 * 创建索引
-	 *
-	 * @param indexName 索引名
-	 * @return 是否创建成功
-	 * @throws IOException 异常信息
-	 */
-	public boolean createIndex(String indexName) throws IOException {
-		if (isExistedIndex(indexName)) {
-			deleteIndex(indexName);
-		}
-		// 写法比RestHighLevelClient更加简洁
-		CreateIndexResponse createIndexResponse = openSearchClient.indices()
-				.create(c -> c.index(indexName));
+  /**
+   * create index
+   *
+   * @param indexName index name
+   * @return is the creation successful?
+   * @throws IOException exception info
+   */
+  public boolean createIndex(String indexName) throws IOException {
+    if (isExistedIndex(indexName)) {
+      deleteIndex(indexName);
+    }
+    // The writing style is more concise than RestHighLevelClient
+    CreateIndexResponse createIndexResponse =
+        openSearchClient.indices().create(c -> c.index(indexName));
 
-		log.info("{} 索引创建是否成功: {}", indexName, createIndexResponse.acknowledged());
+    log.info(
+        "the index: {} creation is successful: {}", indexName, createIndexResponse.acknowledged());
 
-		return Boolean.TRUE.equals(createIndexResponse.acknowledged());
-	}
+    return Boolean.TRUE.equals(createIndexResponse.acknowledged());
+  }
 
-	/**
-	 * 判断index是否存在
-	 *
-	 * @param indexName 索引名
-	 * @return 是否存在
-	 * @throws IOException 异常信息
-	 */
-	public boolean isExistedIndex(String indexName) throws IOException {
-		BooleanResponse booleanResponse = openSearchClient.indices().exists(e -> e.index(indexName));
+  /**
+   * determine if index exists
+   *
+   * @param indexName index name
+   * @return if index exists
+   * @throws IOException exception info
+   */
+  public boolean isExistedIndex(String indexName) throws IOException {
+    BooleanResponse booleanResponse = openSearchClient.indices().exists(e -> e.index(indexName));
 
-		log.info("{} 索引是否存在: {}", indexName, booleanResponse.value());
+    log.info("the index: {} exist: {}", indexName, booleanResponse.value());
 
-		return booleanResponse.value();
-	}
+    return booleanResponse.value();
+  }
 
-	/**
-	 * 删除index
-	 *
-	 * @param indexName 索引名
-	 * @return 是否删除成功
-	 * @throws IOException 异常信息
-	 */
-	public boolean deleteIndex(String indexName) throws IOException {
-		DeleteIndexResponse deleteIndexResponse = openSearchClient.indices()
-				.delete(d -> d.index(indexName));
+  /**
+   * delete index
+   *
+   * @param indexName index name
+   * @return whether the deletion is successful
+   * @throws IOException exception info
+   */
+  public boolean deleteIndex(String indexName) throws IOException {
+    DeleteIndexResponse deleteIndexResponse =
+        openSearchClient.indices().delete(d -> d.index(indexName));
 
-		log.info("{} 索引是否被删除: {}", indexName, deleteIndexResponse.acknowledged());
+    log.info("the index: {} is deleted: {}", indexName, deleteIndexResponse.acknowledged());
 
-		return deleteIndexResponse.acknowledged();
-	}
+    return deleteIndexResponse.acknowledged();
+  }
 
-	/**
-	 * 创建索引 - 指定mapping
-	 *
-	 * @param indexName 索引名
-	 * @return 是否创建成功
-	 * @throws IOException 异常信息
-	 */
-	public boolean createIndexWithMapping(String indexName, TypeMapping typeMapping)
-			throws IOException {
-		if (isExistedIndex(indexName)) {
-			deleteIndex(indexName);
-		}
+  /**
+   * create index - specify mapping
+   *
+   * @param indexName index name
+   * @return is the creation successful
+   * @throws IOException exception info
+   */
+  public boolean createIndexWithMapping(String indexName, TypeMapping typeMapping)
+      throws IOException {
+    if (isExistedIndex(indexName)) {
+      deleteIndex(indexName);
+    }
 
-		CreateIndexResponse createIndexResponse = openSearchClient.indices()
-				.create(createIndexRequest -> createIndexRequest.index(indexName)
-						// 用 lambda 的方式 下面的 mapping 会覆盖上面的 mapping
-						.mappings(typeMapping));
+    CreateIndexResponse createIndexResponse =
+        openSearchClient
+            .indices()
+            .create(
+                createIndexRequest ->
+                    createIndexRequest
+                        .index(indexName)
+                        // with lambda the following mapping will override the above mapping
+                        .mappings(typeMapping));
 
-		log.info("{} 索引创建是否成功: {}", indexName, createIndexResponse.acknowledged());
+    log.info("the index: {} is created: {}", indexName, createIndexResponse.acknowledged());
 
-		return createIndexResponse.acknowledged();
-	}
+    return createIndexResponse.acknowledged();
+  }
 
-	/**
-	 * 创建索引 - 用json脚本创建mapping
-	 *
-	 * @param indexName     索引名
-	 * @param mappingScript mapping的json脚本
-	 * @return 是否创建成功
-	 * @throws IOException 异常信息
-	 */
-	public boolean createIndexWithMapping(String indexName, String mappingScript) throws IOException {
-		if (isExistedIndex(indexName)) {
-			deleteIndex(indexName);
-		}
+  /**
+   * create index - creating mappings with json scripts
+   *
+   * @param indexName index name
+   * @param mappingScript json scripts
+   * @return is the creation successful
+   * @throws IOException exception info
+   */
+  public boolean createIndexWithMapping(String indexName, String mappingScript) throws IOException {
+    if (isExistedIndex(indexName)) {
+      deleteIndex(indexName);
+    }
 
-		JsonpMapper mapper = openSearchClient._transport().jsonpMapper();
-		JsonParser parser = Json.createParser(new StringReader(mappingScript));
+    JsonpMapper mapper = openSearchClient._transport().jsonpMapper();
+    JsonParser parser = Json.createParser(new StringReader(mappingScript));
 
-		CreateIndexResponse createIndexResponse = openSearchClient.indices().create(
-				createIndexRequest -> createIndexRequest.index(indexName)
-						.mappings(TypeMapping._DESERIALIZER.deserialize(parser, mapper)));
+    CreateIndexResponse createIndexResponse =
+        openSearchClient
+            .indices()
+            .create(
+                createIndexRequest ->
+                    createIndexRequest
+                        .index(indexName)
+                        .mappings(TypeMapping._DESERIALIZER.deserialize(parser, mapper)));
 
-		log.info("{} 索引创建是否成功: {}", indexName, createIndexResponse.acknowledged());
+    log.info("the index: {} is created: {}", indexName, createIndexResponse.acknowledged());
 
-		return createIndexResponse.acknowledged();
-	}
+    return createIndexResponse.acknowledged();
+  }
 
-	/**
-	 * 查询index
-	 *
-	 * @param indexName 索引名
-	 * @return GetIndexResponse对象
-	 * @throws IOException 异常信息
-	 */
-	public GetIndexResponse queryIndex(String indexName) throws IOException {
-		GetIndexResponse getIndexResponse = openSearchClient.indices().get(i -> i.index(indexName));
+  /**
+   * query index
+   *
+   * @param indexName index name
+   * @return GetIndexResponse objects
+   * @throws IOException exception info
+   */
+  public GetIndexResponse queryIndex(String indexName) throws IOException {
+    GetIndexResponse getIndexResponse = openSearchClient.indices().get(i -> i.index(indexName));
 
-		log.info("{} 索引信息: {}", indexName, getIndexResponse);
+    log.info("the index: {} infomation: {}", indexName, getIndexResponse);
 
-		return getIndexResponse;
-	}
+    return getIndexResponse;
+  }
 
-	/**
-	 * 查询index相关信息
-	 *
-	 * @param indexName 索引名
-	 * @return GetIndexResponse对象
-	 * @throws IOException 异常信息
-	 */
-	public GetIndexResponse queryIndexDetail(String indexName) throws IOException {
-		GetIndexResponse getIndexResponse = openSearchClient.indices()
-				.get(getIndexRequest -> getIndexRequest.index(indexName));
+  /**
+   * query index related information
+   *
+   * @param indexName index name
+   * @return GetIndexResponse objects
+   * @throws IOException exception info
+   */
+  public GetIndexResponse queryIndexDetail(String indexName) throws IOException {
+    GetIndexResponse getIndexResponse =
+        openSearchClient.indices().get(getIndexRequest -> getIndexRequest.index(indexName));
 
-		Map<String, Property> properties = Objects.requireNonNull(
-				Objects.requireNonNull(getIndexResponse.get(indexName)).mappings()).properties();
+    Map<String, Property> properties =
+        Objects.requireNonNull(Objects.requireNonNull(getIndexResponse.get(indexName)).mappings())
+            .properties();
 
-		for (Map.Entry<String, Property> entry : properties.entrySet()) {
-			log.info("{} 索引的详细信息为: key: {}, property: {}", indexName, entry.getKey(),
-					properties.get(entry.getKey())._kind());
-		}
+    for (Map.Entry<String, Property> entry : properties.entrySet()) {
+      log.info(
+          "the index: {} detailed infomation: key: {}, property: {}",
+          indexName,
+          entry.getKey(),
+          properties.get(entry.getKey())._kind());
+    }
 
-		return getIndexResponse;
-	}
+    return getIndexResponse;
+  }
 
-	/**
-	 * 获取所有索引信息
-	 *
-	 * @return IndicesRecord列表
-	 * @throws IOException 异常信息
-	 */
-	public List<IndicesRecord> getAllIndices() throws IOException {
-		List<IndicesRecord> indicesRecords = openSearchClient.cat().indices().valueBody();
-		log.info("size is:{}", indicesRecords.size());
+  /**
+   * get all index information
+   *
+   * @return IndicesRecord list
+   * @throws IOException exception info
+   */
+  public List<IndicesRecord> getAllIndices() throws IOException {
+    List<IndicesRecord> indicesRecords = openSearchClient.cat().indices().valueBody();
+    log.info("size is:{}", indicesRecords.size());
 
-		return indicesRecords;
-	}
+    return indicesRecords;
+  }
 
-	/**
-	 * 获取Mapping信息
-	 *
-	 * @param indexName 索引名
-	 * @return TypeMapping对象
-	 * @throws IOException 异常信息
-	 */
-	public TypeMapping getMapping(String indexName) throws IOException {
-		GetMappingResponse getMappingResponse = openSearchClient.indices().getMapping();
+  /**
+   * get Mapping Information
+   *
+   * @param indexName index name
+   * @return TypeMapping objects
+   * @throws IOException exception info
+   */
+  public TypeMapping getMapping(String indexName) throws IOException {
+    GetMappingResponse getMappingResponse = openSearchClient.indices().getMapping();
 
-		TypeMapping typeMapping = getMappingResponse.result().get(indexName).mappings();
+    TypeMapping typeMapping = getMappingResponse.result().get(indexName).mappings();
 
-		log.info("typeMapping is:{}", typeMapping);
+    log.info("typeMapping is:{}", typeMapping);
 
-		return typeMapping;
-	}
+    return typeMapping;
+  }
 
-	/**
-	 * 获取所有Mapping信息
-	 *
-	 * @return Map<String, TypeMapping>对象，key就是索引名，value是TypeMapping对象
-	 * @throws IOException 异常信息
-	 */
-	public Map<String, TypeMapping> getAllMappings() throws IOException {
-		Map<String, IndexMappingRecord> indexMappingRecordMap = openSearchClient.indices().getMapping()
-				.result();
+  /**
+   * get all Mapping information
+   *
+   * @return Map<String, TypeMapping> objects，key is the index name, value is the TypeMapping object
+   * @throws IOException exception info
+   */
+  public Map<String, TypeMapping> getAllMappings() throws IOException {
+    Map<String, IndexMappingRecord> indexMappingRecordMap =
+        openSearchClient.indices().getMapping().result();
 
-		Map<String, TypeMapping> result = new HashMap<>(indexMappingRecordMap.size());
+    Map<String, TypeMapping> result = new HashMap<>(indexMappingRecordMap.size());
 
-		for (Map.Entry<String, IndexMappingRecord> entry : indexMappingRecordMap.entrySet()) {
-			String key = entry.getKey();
-			TypeMapping typeMapping = indexMappingRecordMap.get(key).mappings();
-			log.info("索引的详细信息为: key: {}, property: {}", key, typeMapping);
+    for (Map.Entry<String, IndexMappingRecord> entry : indexMappingRecordMap.entrySet()) {
+      String key = entry.getKey();
+      TypeMapping typeMapping = indexMappingRecordMap.get(key).mappings();
+      log.info("the index detailed infomation: key: {}, property: {}", key, typeMapping);
 
-			result.put(key, typeMapping);
-		}
+      result.put(key, typeMapping);
+    }
 
-		return result;
-	}
+    return result;
+  }
 
-	/**
-	 * 索引refresh
-	 *
-	 * @param indexName 索引名
-	 * @return refresh是否成功，true成功 false失败
-	 * @throws IOException 异常信息
-	 */
-	public boolean refresh(String indexName) throws IOException {
-		RefreshResponse response = openSearchClient.indices()
-				.refresh(request -> request.index(indexName));
+  /**
+   * index refresh
+   *
+   * @param indexName index name
+   * @return whether refresh succeeds, true succeeds false fails
+   * @throws IOException exception info
+   */
+  public boolean refresh(String indexName) throws IOException {
+    RefreshResponse response =
+        openSearchClient.indices().refresh(request -> request.index(indexName));
 
-		return doOperation(response.shards());
-	}
+    return doOperation(response.shards());
+  }
 
-	/**
-	 * 索引flush
-	 *
-	 * @param indexName 索引名
-	 * @return flush是否成功，true成功 false失败
-	 * @throws IOException 异常信息
-	 */
-	public boolean flush(String indexName) throws IOException {
-		FlushResponse response = openSearchClient.indices().flush(request -> request.index(indexName));
+  /**
+   * index flush
+   *
+   * @param indexName index name
+   * @return whether flush succeeds, true succeeds false fails
+   * @throws IOException exception info
+   */
+  public boolean flush(String indexName) throws IOException {
+    FlushResponse response = openSearchClient.indices().flush(request -> request.index(indexName));
 
-		return doOperation(response.shards());
-	}
+    return doOperation(response.shards());
+  }
 }

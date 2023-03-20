@@ -41,9 +41,9 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 
 /**
- * @author frank woo(吴峻申) <br> email:<a
- * href="mailto:frank_wjs@hotmail.com">frank_wjs@hotmail.com</a> <br>
- * @date 2020/2/7 5:33 下午 <br>
+ * @author frank woo(吴峻申) <br>
+ * @email <a href="mailto:frank_wjs@hotmail.com">frank_wjs@hotmail.com</a> <br>
+ * @date 2020/2/7 17:33 <br>
  */
 @Slf4j
 @TestClassOrder(ClassOrderer.OrderAnnotation.class)
@@ -51,117 +51,141 @@ import org.springframework.test.context.ActiveProfiles;
 @Order(400)
 @ActiveProfiles(value = "local")
 @TestInstance(Lifecycle.PER_CLASS)
-@SpringBootTest(classes = {ApplicationTests.class})//这里加启动类
+@SpringBootTest(classes = {ApplicationTests.class}) // add startup class here
 public class CountryQueryTest {
 
-	private final ObjectMapper mapper = new ObjectMapper();
+  private final ObjectMapper mapper = new ObjectMapper();
 
-	@Autowired
-	private OpenSearchConfigProperties openSearchConfigProperties;
-	@Autowired
-	private IndexApi indexApi;
-	@Autowired
-	private DocumentApi documentApi;
-	@Autowired
-	private QueryApi queryApi;
+  @Autowired private OpenSearchConfigProperties openSearchConfigProperties;
+  @Autowired private IndexApi indexApi;
+  @Autowired private DocumentApi documentApi;
+  @Autowired private QueryApi queryApi;
 
-	private String indexName;
+  private String indexName;
 
-	@BeforeAll
-	public void init() throws IOException {
-		indexName = openSearchConfigProperties.getIndex();
+  @BeforeAll
+  public void init() throws IOException {
+    indexName = openSearchConfigProperties.getIndex();
 
-		if (indexApi.isExistedIndex(indexName)) {
-			indexApi.deleteIndex(indexName);
-		}
+    if (indexApi.isExistedIndex(indexName)) {
+      indexApi.deleteIndex(indexName);
+    }
 
-		Function<Builder, ObjectBuilder<Property>> districtFn = fn -> fn.nested(
-				district -> district.properties("id",
-								id -> id.long_(longProperty -> longProperty.index(true)))
-						.properties("name",
-								name -> name.keyword(keyWordProperty -> keyWordProperty.index(true)))
-						.properties("code", code -> code.integer(intProperty -> intProperty.index(true))));
+    Function<Builder, ObjectBuilder<Property>> districtFn =
+        fn ->
+            fn.nested(
+                district ->
+                    district
+                        .properties("id", id -> id.long_(longProperty -> longProperty.index(true)))
+                        .properties(
+                            "name",
+                            name -> name.keyword(keyWordProperty -> keyWordProperty.index(true)))
+                        .properties(
+                            "code", code -> code.integer(intProperty -> intProperty.index(true))));
 
-		Function<Builder, ObjectBuilder<Property>> cityFn =
-				fn -> fn.nested(
-						city -> city.properties("id", id -> id.long_(longProperty -> longProperty.index(true)))
-								.properties("district", districtFn));
+    Function<Builder, ObjectBuilder<Property>> cityFn =
+        fn ->
+            fn.nested(
+                city ->
+                    city.properties("id", id -> id.long_(longProperty -> longProperty.index(true)))
+                        .properties("district", districtFn));
 
-		Function<Builder, ObjectBuilder<Property>> provinceFn = fn -> fn.nested(
-				province -> province.properties("id",
-								id -> id.long_(longProperty -> longProperty.index(true)))
-						.properties("city", cityFn));
+    Function<Builder, ObjectBuilder<Property>> provinceFn =
+        fn ->
+            fn.nested(
+                province ->
+                    province
+                        .properties("id", id -> id.long_(longProperty -> longProperty.index(true)))
+                        .properties("city", cityFn));
 
-		Function<Builder, ObjectBuilder<Property>> regionFn = fn ->
-				fn.nested(region -> region.properties("id",
-								id -> id.long_(longProperty -> longProperty.index(true)))
-						.properties("province", provinceFn));
+    Function<Builder, ObjectBuilder<Property>> regionFn =
+        fn ->
+            fn.nested(
+                region ->
+                    region
+                        .properties("id", id -> id.long_(longProperty -> longProperty.index(true)))
+                        .properties("province", provinceFn));
 
-		TypeMapping typeMapping = new TypeMapping.Builder()
-				.properties("id", id -> id.long_(longProperty -> longProperty.index(true)))
-				.properties("region", regionFn)
-				.build();
+    TypeMapping typeMapping =
+        new TypeMapping.Builder()
+            .properties("id", id -> id.long_(longProperty -> longProperty.index(true)))
+            .properties("region", regionFn)
+            .build();
 
-		indexApi.createIndexWithMapping(indexName, typeMapping);
+    indexApi.createIndexWithMapping(indexName, typeMapping);
 
-		// 创建数据
-		Country country = Country.builder()
-				.id(1L)
-				.region(Region.builder()
-						.id(1L)
-						.province(Province.builder()
-								.id(1L)
-								.city(City.builder()
-										.id(1L)
-										.district(District.builder()
-												.id(1L)
-												.code(8)
-												.name("test")
-												.build())
-										.build())
-								.build())
-						.build())
-				.build();
+    // create Data
+    Country country =
+        Country.builder()
+            .id(1L)
+            .region(
+                Region.builder()
+                    .id(1L)
+                    .province(
+                        Province.builder()
+                            .id(1L)
+                            .city(
+                                City.builder()
+                                    .id(1L)
+                                    .district(
+                                        District.builder().id(1L).code(8).name("test").build())
+                                    .build())
+                            .build())
+                    .build())
+            .build();
 
-		documentApi.addDocument(indexName, country);
+    documentApi.addDocument(indexName, country);
 
-		indexApi.refresh(indexName);
-	}
+    indexApi.refresh(indexName);
+  }
 
-	@AfterAll
-	public void clear() throws IOException {
-		indexApi.deleteIndex(indexName);
+  @AfterAll
+  public void clear() throws IOException {
+    indexApi.deleteIndex(indexName);
 
-		indexName = null;
-	}
+    indexName = null;
+  }
 
-	/**
-	 * 嵌套查询, 内嵌文档查询
-	 */
-	@Test
-	public void nestedQuery() throws IOException {
-		// 准备查询
-		Query query = Query.of(q -> q.bool(t -> t.must(List.of(
-				Query.of(q1 -> q1.match(
-						t1 -> t1.field("region.province.city.district.code").query(FieldValue.of(8)))),
-				Query.of(q2 -> q2.match(
-						t2 -> t2.field("region.province.city.district.name").query(FieldValue.of("test"))))))));
+  /** nested queries, inline document queries */
+  @Test
+  public void nestedQuery() throws IOException {
+    // prepare query
+    Query query =
+        Query.of(
+            q ->
+                q.bool(
+                    t ->
+                        t.must(
+                            List.of(
+                                Query.of(
+                                    q1 ->
+                                        q1.match(
+                                             t1 ->
+                                                t1.field("region.province.city.district.code")
+                                                    .query(FieldValue.of(8)))),
+                                Query.of(
+                                    q2 ->
+                                        q2.match(
+                                            t2 ->
+                                                t2.field("region.province.city.district.name")
+                                                    .query(FieldValue.of("test"))))))));
 
-		List<Country> result = queryApi.nestedQuery(
-				indexName,
-				"region.province.city.district",
-				query,
-				ChildScoreMode.None,
-				"id",
-				0,
-				10,
-				true,
-				Country.class);
+    List<Country> result =
+        queryApi.nestedQuery(
+            indexName,
+            "region.province.city.district",
+            query,
+            ChildScoreMode.None,
+            "id",
+            0,
+            10,
+            true,
+            Country.class);
 
-		log.info("\njson string is:{}，list size is:{}\n", mapper.writeValueAsString(result),
-				result.size());
+    log.info(
+        "\njson string is:{}，list size is:{}\n", mapper.writeValueAsString(result), result.size());
 
-		assertThat(result, notNullValue());
-		assertThat(result.size(), equalTo(1));
-	}
+    assertThat(result, notNullValue());
+    assertThat(result.size(), equalTo(1));
+  }
 }

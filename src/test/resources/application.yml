@@ -1,8 +1,9 @@
 opensearch:
   userName: admin
   password: admin
-  schema: http
-  address: 35.72.115.65:9200,54.199.186.186:9200,43.206.188.96:9200,13.112.86.144:9200
+#  schema: http
+  schema: https
+  address: 35.72.115.65:9200,54.199.186.186:9200,13.112.86.144:9200
   connectTimeout: 10000
   socketTimeout: 6000000
   connectionRequestTimeout: 20000

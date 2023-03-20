@@ -40,27 +40,27 @@
     </filter>
   </appender>
   <appender class="ch.qos.logback.classic.AsyncAppender" name="ASYNC-STDOUT">
-    <!-- 不丢失日志.默认的,如果队列的80%已满,则会丢弃TRACT、DEBUG、INFO级别的日志 -->
+    <!-- no logs are lost. By default, if 80% of the queue is full, the TRACT, DEBUG, INFO level logs are discarded -->
     <appender-ref ref="STDOUT"/>
-    <!-- 更改默认的队列的深度,该值会影响性能.默认值为256 -->
+    <!-- change the default queue depth, this value will affect performance. The default value is 256. -->
     <discardingThreshold>0</discardingThreshold>
-    <!-- 新增这行为了打印栈堆信息 -->
+    <!-- added this line to print stack information -->
     <includeCallerData>true</includeCallerData>
-    <!-- 添加附加的appender,最多只能添加一个 -->
+    <!-- add additional appender, only one at most -->
     <queueSize>512</queueSize>
   </appender>
   <!-- Console output -->
   <appender class="ch.qos.logback.classic.AsyncAppender" name="ASYNC-FILE">
-    <!-- 不丢失日志.默认的,如果队列的80%已满,则会丢弃TRACT、DEBUG、INFO级别的日志 -->
+    <!-- no logs are lost. By default, if 80% of the queue is full, the TRACT, DEBUG, INFO level logs are discarded -->
     <appender-ref ref="FILE"/>
-    <!-- 更改默认的队列的深度,该值会影响性能.默认值为256 -->
+    <!-- change the default queue depth, this value will affect performance. The default value is 256. -->
     <discardingThreshold>0</discardingThreshold>
-    <!-- 新增这行为了打印栈堆信息 -->
+    <!-- added this line to print stack information -->
     <includeCallerData>true</includeCallerData>
-    <!-- 添加附加的appender,最多只能添加一个 -->
+    <!-- add additional appender, only one at most -->
     <queueSize>512</queueSize>
   </appender>
-  <!-- 异步输出 -->
+  <!-- asynchronous output -->
   <logger level="TRACE" name="org.apache.ibatis"/>
 
   <logger level="DEBUG" name="java.sql.Connection"/>
@@ -90,7 +90,7 @@
       <appender-ref ref="ASYNC-STDOUT"/>
     </root>
   </springProfile>
-  <!--启动日志中打印请求路径列表-->
+  <!--print a list of request paths in the startup log-->
   <springProfile name="TEST">
     <root level="INFO">
       <appender-ref ref="ASYNC-STDOUT"/>

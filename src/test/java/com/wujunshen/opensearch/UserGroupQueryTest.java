@@ -38,8 +38,8 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 
 /**
- * @author frank woo(吴峻申) <br> email:<a
- * href="mailto:frank_wjs@hotmail.com">frank_wjs@hotmail.com</a> <br>
+ * @author frank woo(吴峻申) <br>
+ * @email <a href="mailto:frank_wjs@hotmail.com">frank_wjs@hotmail.com</a> <br>
  * @date 2020/2/7 5:33 下午 <br>
  */
 @Slf4j
@@ -48,111 +48,100 @@ import org.springframework.test.context.ActiveProfiles;
 @Order(100)
 @ActiveProfiles(value = "local")
 @TestInstance(Lifecycle.PER_CLASS)
-@SpringBootTest(classes = {ApplicationTests.class})//这里加启动类
+@SpringBootTest(classes = {ApplicationTests.class}) // add startup class here
 public class UserGroupQueryTest {
 
-	private final ObjectMapper mapper = new ObjectMapper();
-	@Autowired
-	private OpenSearchConfigProperties openSearchConfigProperties;
-	@Autowired
-	private IndexApi indexApi;
-	@Autowired
-	private DocumentApi documentApi;
-	@Autowired
-	private QueryApi queryApi;
-	private String indexName;
+  private final ObjectMapper mapper = new ObjectMapper();
+  @Autowired private OpenSearchConfigProperties openSearchConfigProperties;
+  @Autowired private IndexApi indexApi;
+  @Autowired private DocumentApi documentApi;
+  @Autowired private QueryApi queryApi;
+  private String indexName;
 
-	@BeforeAll
-	public void init() throws IOException {
-		indexName = openSearchConfigProperties.getIndex();
+  @BeforeAll
+  public void init() throws IOException {
+    indexName = openSearchConfigProperties.getIndex();
 
-		if (indexApi.isExistedIndex(indexName)) {
-			indexApi.deleteIndex(indexName);
-		}
+    if (indexApi.isExistedIndex(indexName)) {
+      indexApi.deleteIndex(indexName);
+    }
 
-		//        String mapping = "{\n"
-		//                + "  \"properties\": {\n"
-		//                + "    \"id\": {\n"
-		//                + "      \"type\": \"long\"\n"
-		//                + "    },\n"
-		//                + "    \"user\": {\n"
-		//                + "      \"type\": \"nested\",\n"
-		//                + "      \"properties\": {\n"
-		//                + "        \"last\": {\n"
-		//                + "          \"type\": \"keyword\"\n"
-		//                + "        },\n"
-		//                + "        \"id\": {\n"
-		//                + "          \"type\": \"long\"\n"
-		//                + "        },\n"
-		//                + "        \"first\": {\n"
-		//                + "          \"type\": \"keyword\"\n"
-		//                + "        }\n"
-		//                + "      }\n"
-		//                + "    },\n"
-		//                + "    \"group\": {\n"
-		//                + "      \"fielddata\": true,\n"
-		//                + "      \"type\": \"text\"\n"
-		//                + "    }\n"
-		//                + "  }\n"
-		//                + "}";
-		//        indexApi.createIndexWithMapping(indexName, mapping);
+    Function<Builder, ObjectBuilder<Property>> userFn =
+        fn ->
+            fn.nested(
+                user ->
+                    user.properties("id", id -> id.long_(longProperty -> longProperty.index(true)))
+                        .properties(
+                            "first",
+                            first -> first.keyword(textProperty -> textProperty.index(true)))
+                        .properties(
+                            "last",
+                            last -> last.keyword(textProperty -> textProperty.index(true))));
 
-		Function<Builder, ObjectBuilder<Property>> userFn =
-				fn -> fn.nested(
-						user -> user.properties("id", id -> id.long_(longProperty -> longProperty.index(true)))
-								.properties("first",
-										first -> first.keyword(textProperty -> textProperty.index(true)))
-								.properties("last",
-										last -> last.keyword(textProperty -> textProperty.index(true))));
+    TypeMapping typeMapping =
+        new TypeMapping.Builder()
+            .properties("id", id -> id.long_(longProperty -> longProperty.index(true)))
+            .properties("group", group -> group.text(textProperty -> textProperty.fielddata(true)))
+            .properties("user", userFn)
+            .build();
 
-		TypeMapping typeMapping = new TypeMapping.Builder()
-				.properties("id", id -> id.long_(longProperty -> longProperty.index(true)))
-				.properties("group", group -> group.text(textProperty -> textProperty.fielddata(true)))
-				.properties("user", userFn)
-				.build();
+    indexApi.createIndexWithMapping(indexName, typeMapping);
 
-		indexApi.createIndexWithMapping(indexName, typeMapping);
+    // create Data
+    User user = new User();
+    user.setId(1L);
+    user.setFirst("junshen");
+    user.setLast("wu");
 
-		// 创建数据
-		User user = new User();
-		user.setId(1L);
-		user.setFirst("junshen");
-		user.setLast("wu");
+    UserGroup userGroup = new UserGroup();
+    userGroup.setId(1L);
+    userGroup.setGroup("fans");
+    userGroup.setUser(user);
 
-		UserGroup userGroup = new UserGroup();
-		userGroup.setId(1L);
-		userGroup.setGroup("fans");
-		userGroup.setUser(user);
+    documentApi.addDocument(indexName, userGroup);
 
-		documentApi.addDocument(indexName, userGroup);
+    indexApi.refresh(indexName);
+  }
 
-		indexApi.refresh(indexName);
-	}
+  @AfterAll
+  public void clear() throws IOException {
+    indexApi.deleteIndex(indexName);
 
-	@AfterAll
-	public void clear() throws IOException {
-		indexApi.deleteIndex(indexName);
+    indexName = null;
+  }
 
-		indexName = null;
-	}
+  /** nested queries, inline document queries */
+  @Test
+  public void nestedQuery() throws IOException {
+    // prepare query
+    Query query =
+        Query.of(
+            q ->
+                q.bool(
+                    t ->
+                        t.must(
+                            List.of(
+                                Query.of(
+                                    q1 ->
+                                        q1.match(
+                                            t1 ->
+                                                t1.field("user.first")
+                                                    .query(FieldValue.of("junshen")))),
+                                Query.of(
+                                    q2 ->
+                                        q2.match(
+                                            t2 ->
+                                                t2.field("user.last")
+                                                    .query(FieldValue.of("wu"))))))));
 
-	/**
-	 * 嵌套查询, 内嵌文档查询
-	 */
-	@Test
-	public void nestedQuery() throws IOException {
-		// 准备查询
-		Query query = Query.of(q -> q.bool(t -> t.must(List.of(
-				Query.of(q1 -> q1.match(t1 -> t1.field("user.first").query(FieldValue.of("junshen")))),
-				Query.of(q2 -> q2.match(t2 -> t2.field("user.last").query(FieldValue.of("wu"))))))));
+    List<UserGroup> result =
+        queryApi.nestedQuery(
+            indexName, "user", query, ChildScoreMode.None, "id", 0, 10, true, UserGroup.class);
 
-		List<UserGroup> result = queryApi.nestedQuery(
-				indexName, "user", query, ChildScoreMode.None, "id", 0, 10, true, UserGroup.class);
+    log.info(
+        "\njson string is:{}，list size is:{}\n", mapper.writeValueAsString(result), result.size());
 
-		log.info("\njson string is:{}，list size is:{}\n", mapper.writeValueAsString(result),
-				result.size());
-
-		assertThat(result, notNullValue());
-		assertThat(result.size(), equalTo(1));
-	}
+    assertThat(result, notNullValue());
+    assertThat(result.size(), equalTo(1));
+  }
 }

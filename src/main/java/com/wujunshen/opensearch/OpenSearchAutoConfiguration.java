@@ -22,87 +22,92 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 /**
- * @author frank woo(吴峻申) <br> email:<a
- * href="mailto:frank_wjs@hotmail.com">frank_wjs@hotmail.com</a> <br>
+ * @author frank woo(吴峻申) <br>
+ * @email <a href="mailto:frank_wjs@hotmail.com">frank_wjs@hotmail.com</a> <br>
  * @date 2022/12/14 16:39<br>
  */
 @Configuration
 @EnableConfigurationProperties({OpenSearchConfigProperties.class, SslConfigProperties.class})
 public class OpenSearchAutoConfiguration {
+  @ConditionalOnMissingBean
+  @Bean
+  public CredentialsProvider credentialsProvider(
+      OpenSearchConfigProperties openSearchConfigProperties) {
+    BasicCredentialsProvider credentialsProvider = new BasicCredentialsProvider();
+    credentialsProvider.setCredentials(
+        AuthScope.ANY,
+        new UsernamePasswordCredentials(
+            openSearchConfigProperties.getUserName(), openSearchConfigProperties.getPassword()));
+    return credentialsProvider;
+  }
 
-	@ConditionalOnMissingBean
-	@Bean
-	public CredentialsProvider credentialsProvider(
-			OpenSearchConfigProperties openSearchConfigProperties) {
-		BasicCredentialsProvider credentialsProvider = new BasicCredentialsProvider();
-		credentialsProvider.setCredentials(AuthScope.ANY,
-				new UsernamePasswordCredentials(openSearchConfigProperties.getUserName(),
-						openSearchConfigProperties.getPassword()));
-		return credentialsProvider;
-	}
+  @ConditionalOnMissingBean
+  @Bean
+  public RestClient restClient(
+      OpenSearchConfigProperties openSearchConfigProperties,
+      SslConfigProperties sslConfigProperties,
+      CredentialsProvider credentialsProvider) {
+    // split cluster address
+    List<HttpHost> httpHostList = new ArrayList<>();
+    String[] hostArray = openSearchConfigProperties.getAddress().split(",");
+    for (String element : hostArray) {
+      String host = element.split(":")[0];
+      String port = element.split(":")[1];
+      httpHostList.add(
+          new HttpHost(host, Integer.parseInt(port), openSearchConfigProperties.getSchema()));
+    }
 
-	@ConditionalOnMissingBean
-	@Bean
-	public RestClient restClient(OpenSearchConfigProperties openSearchConfigProperties,
-			SslConfigProperties sslConfigProperties, CredentialsProvider credentialsProvider) {
-		// 拆分地址
-		List<HttpHost> httpHostList = new ArrayList<>();
-		String[] hostArray = openSearchConfigProperties.getAddress().split(",");
-		for (String element : hostArray) {
-			String host = element.split(":")[0];
-			String port = element.split(":")[1];
-			httpHostList.add(
-					new HttpHost(host, Integer.parseInt(port), openSearchConfigProperties.getSchema()));
-		}
+    // conjugate cluster address
+    HttpHost[] httpHostArray = httpHostList.toArray(new HttpHost[] {});
+    // build connected objects
+    RestClientBuilder builder = RestClient.builder(httpHostArray);
 
-		// 转换成 HttpHost 数组
-		HttpHost[] httpHostArray = httpHostList.toArray(new HttpHost[]{});
-		// 构建连接对象
-		RestClientBuilder builder = RestClient.builder(httpHostArray);
+    // asynchronous connection delay configuration
+    builder.setRequestConfigCallback(
+        requestConfigBuilder -> {
+          requestConfigBuilder.setConnectTimeout(openSearchConfigProperties.getConnectTimeout());
+          requestConfigBuilder.setSocketTimeout(openSearchConfigProperties.getSocketTimeout());
+          requestConfigBuilder.setConnectionRequestTimeout(
+              openSearchConfigProperties.getConnectionRequestTimeout());
+          return requestConfigBuilder;
+        });
 
-		// 异步连接延时配置
-		builder.setRequestConfigCallback(requestConfigBuilder -> {
-			requestConfigBuilder.setConnectTimeout(openSearchConfigProperties.getConnectTimeout());
-			requestConfigBuilder.setSocketTimeout(openSearchConfigProperties.getSocketTimeout());
-			requestConfigBuilder.setConnectionRequestTimeout(
-					openSearchConfigProperties.getConnectionRequestTimeout());
-			return requestConfigBuilder;
-		});
+    // config the number of asynchronous connections
+    builder.setHttpClientConfigCallback(
+        httpClientBuilder -> {
+          httpClientBuilder.setMaxConnTotal(openSearchConfigProperties.getMaxConnectNum());
+          httpClientBuilder.setMaxConnPerRoute(openSearchConfigProperties.getMaxConnectPerRoute());
+          return httpClientBuilder;
+        });
 
-		// 异步连接数配置
-		builder.setHttpClientConfigCallback(httpClientBuilder -> {
-			httpClientBuilder.setMaxConnTotal(openSearchConfigProperties.getMaxConnectNum());
-			httpClientBuilder.setMaxConnPerRoute(openSearchConfigProperties.getMaxConnectPerRoute());
-			return httpClientBuilder;
-		});
+    if ("https".equals(openSearchConfigProperties.getSchema())) {
+      System.setProperty("javax.net.ssl.trustStore", sslConfigProperties.getPath());
+      System.setProperty("javax.net.ssl.trustStorePassword", sslConfigProperties.getPassword());
 
-		if ("https".equals(openSearchConfigProperties.getSchema())) {
-			System.setProperty("javax.net.ssl.trustStore", sslConfigProperties.getPath());
-			System.setProperty("javax.net.ssl.trustStorePassword", sslConfigProperties.getPassword());
+      builder.setHttpClientConfigCallback(
+          httpClientBuilder -> {
+            // don't verify hostname
+            httpClientBuilder.setSSLHostnameVerifier(NoopHostnameVerifier.INSTANCE);
 
-			builder.setHttpClientConfigCallback(httpClientBuilder -> {
-				// 不验证hostname
-				httpClientBuilder.setSSLHostnameVerifier(NoopHostnameVerifier.INSTANCE);
+            // set username and password to access
+            httpClientBuilder.setDefaultCredentialsProvider(credentialsProvider);
 
-				//设置用户名和密码访问
-				httpClientBuilder.setDefaultCredentialsProvider(credentialsProvider);
+            return httpClientBuilder;
+          });
+    }
 
-				return httpClientBuilder;
-			});
-		}
+    return builder.build();
+  }
 
-		return builder.build();
-	}
+  @ConditionalOnMissingBean
+  @Bean
+  public OpenSearchTransport openSearchTransport(RestClient restClient) {
+    return new RestClientTransport(restClient, new JacksonJsonpMapper());
+  }
 
-	@ConditionalOnMissingBean
-	@Bean
-	public OpenSearchTransport openSearchTransport(RestClient restClient) {
-		return new RestClientTransport(restClient, new JacksonJsonpMapper());
-	}
-
-	@ConditionalOnMissingBean
-	@Bean
-	public OpenSearchClient openSearchClient(OpenSearchTransport transport) {
-		return new OpenSearchClient(transport);
-	}
+  @ConditionalOnMissingBean
+  @Bean
+  public OpenSearchClient openSearchClient(OpenSearchTransport transport) {
+    return new OpenSearchClient(transport);
+  }
 }

@@ -31,8 +31,8 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 
 /**
- * @author frank woo(吴峻申) <br> email:<a
- * href="mailto:frank_wjs@hotmail.com">frank_wjs@hotmail.com</a> <br>
+ * @author frank woo(吴峻申) <br>
+ * @email <a href="mailto:frank_wjs@hotmail.com">frank_wjs@hotmail.com</a> <br>
  * @date 2022/8/19 10:55<br>
  */
 @Slf4j
@@ -41,103 +41,96 @@ import org.springframework.test.context.ActiveProfiles;
 @Order(30)
 @ActiveProfiles(value = "local")
 @TestInstance(Lifecycle.PER_CLASS)
-@SpringBootTest(classes = {ApplicationTests.class})//这里加启动类
+@SpringBootTest(classes = {ApplicationTests.class}) // add startup class here
 class QueryApiTest {
 
-	@Autowired
-	private OpenSearchConfigProperties openSearchConfigProperties;
+  @Autowired private OpenSearchConfigProperties openSearchConfigProperties;
 
-	@Autowired
-	private DocumentApi documentApi;
+  @Autowired private DocumentApi documentApi;
 
-	@Autowired
-	private QueryApi queryApi;
+  @Autowired private QueryApi queryApi;
 
-	@Autowired
-	private IndexApi indexApi;
+  @Autowired private IndexApi indexApi;
 
-	private Sku sku;
+  private Sku sku;
 
-	private List<Sku> skuList;
+  private List<Sku> skuList;
 
-	private String indexName;
+  private String indexName;
 
-	@BeforeAll
-	void setUp() throws IOException, InterruptedException {
-		indexName = openSearchConfigProperties.getIndex();
+  @BeforeAll
+  void setUp() throws IOException {
+    indexName = openSearchConfigProperties.getIndex();
 
-		sku = Sku.builder().id(1L).skuName("City bike").skuPrice(123).build();
+    sku = Sku.builder().id(1L).skuName("City bike").skuPrice(123).build();
 
-		skuList = bulkWriteProducts();
+    skuList = bulkWriteProducts();
 
-		TypeMapping typeMapping = new TypeMapping.Builder()
-				.properties("id", id -> id.long_(longProperty -> longProperty.index(true)))
-				.properties("skuName",
-						skuName -> skuName.text(textProperty -> textProperty.fielddata(true)))
-				.properties("skuPrice",
-						skuPrice -> skuPrice.integer(intProperty -> intProperty.index(true)))
-				.build();
+    TypeMapping typeMapping =
+        new TypeMapping.Builder()
+            .properties("id", id -> id.long_(longProperty -> longProperty.index(true)))
+            .properties(
+                "skuName", skuName -> skuName.text(textProperty -> textProperty.fielddata(true)))
+            .properties(
+                "skuPrice", skuPrice -> skuPrice.integer(intProperty -> intProperty.index(true)))
+            .build();
 
-		indexApi.createIndexWithMapping(indexName, typeMapping);
+    indexApi.createIndexWithMapping(indexName, typeMapping);
 
-		documentApi.addDocument(indexName, String.valueOf(sku.getId()), sku);
+    documentApi.addDocument(indexName, String.valueOf(sku.getId()), sku);
 
-		documentApi.batchAddDocument(indexName, skuList);
+    documentApi.batchAddDocument(indexName, skuList);
 
-		indexApi.refresh(indexName);
-	}
+    indexApi.refresh(indexName);
+  }
 
-	@AfterAll
-	void tearDown() throws IOException {
-		sku = null;
-		skuList = null;
+  @AfterAll
+  void tearDown() throws IOException {
+    sku = null;
+    skuList = null;
 
-		indexApi.deleteIndex(indexName);
+    indexApi.deleteIndex(indexName);
 
-		indexName = null;
-	}
+    indexName = null;
+  }
 
-	/**
-	 * 聚合操作
-	 */
-	@Order(65)
-	@Test
-	void aggsByHistogram() throws IOException {
-		List<HistogramBucket> buckets =
-				queryApi.aggsByHistogram(indexName, "bike", "skuName", "skuPrice", "price-histogram", 50.0);
+  /** aggregation operations */
+  @Order(65)
+  @Test
+  void aggsByHistogram() throws IOException {
+    List<HistogramBucket> buckets =
+        queryApi.aggsByHistogram(indexName, "bike", "skuName", "skuPrice", "price-histogram", 50.0);
 
-		for (HistogramBucket bucket : buckets) {
-			log.info("There are " + bucket.docCount() + " bikes under " + bucket.key());
-		}
+    for (HistogramBucket bucket : buckets) {
+      log.info("There are " + bucket.docCount() + " bikes under " + bucket.key());
+    }
 
-		assertThat(buckets, notNullValue());
-	}
+    assertThat(buckets, notNullValue());
+  }
 
-	/**
-	 * 指定id检索数据
-	 */
-	@Order(70)
-	@Test
-	void searchById() throws IOException {
-		GetResponse<Sku> response = queryApi.searchById(indexName, String.valueOf(sku.getId()),
-				Sku.class);
+  /** specify id to retrieve data */
+  @Order(70)
+  @Test
+  void searchById() throws IOException {
+    GetResponse<Sku> response =
+        queryApi.searchById(indexName, String.valueOf(sku.getId()), Sku.class);
 
-		if (response != null) {
-			Sku source = response.source();
-			log.info("sku: {}", source);
-		}
+    if (response != null) {
+      Sku source = response.source();
+      log.info("sku: {}", source);
+    }
 
-		assertThat(response, notNullValue());
-	}
+    assertThat(response, notNullValue());
+  }
 
-	private List<Sku> bulkWriteProducts() {
-		List<Sku> result = new ArrayList<>();
+  private List<Sku> bulkWriteProducts() {
+    List<Sku> result = new ArrayList<>();
 
-		for (int i = 0; i < 100; i++) {
-			String type = "City bike " + i;
-			int price = (int) (Math.random() * 3 * 100);
-			result.add(Sku.builder().id((long) i).skuName(type).skuPrice(price).build());
-		}
-		return result;
-	}
+    for (int i = 0; i < 100; i++) {
+      String type = "City bike " + i;
+      int price = (int) (Math.random() * 3 * 100);
+      result.add(Sku.builder().id((long) i).skuName(type).skuPrice(price).build());
+    }
+    return result;
+  }
 }

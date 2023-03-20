@@ -8,7 +8,7 @@
     <artifactId>spring-boot-starter-parent</artifactId>
     <groupId>org.springframework.boot</groupId>
     <relativePath/>
-    <version>3.0.0</version> <!-- lookup parent from repository -->
+    <version>3.0.2</version> <!-- lookup parent from repository -->
   </parent>
 
   <groupId>com.wujunshen</groupId>
@@ -56,7 +56,7 @@
         </exclusion>
       </exclusions>
       <groupId>org.opensearch.client</groupId>
-      <version>2.4.0</version>
+      <version>2.6.0</version>
     </dependency>
     <dependency>
       <artifactId>jakarta.json-api</artifactId>
@@ -66,7 +66,7 @@
     <dependency>
       <artifactId>opensearch-java</artifactId>
       <groupId>org.opensearch.client</groupId>
-      <version>2.1.0</version>
+      <version>2.2.0</version>
     </dependency>
     <dependency>
       <artifactId>jackson-databind</artifactId>
@@ -96,7 +96,7 @@
     <dependency>
       <artifactId>hutool-all</artifactId>
       <groupId>cn.hutool</groupId>
-      <version>5.8.10</version>
+      <version>5.8.15</version>
     </dependency>
     <dependency>
       <artifactId>logback-classic</artifactId>
